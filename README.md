@@ -1,1 +1,1 @@
-# SettingSamples-Vmware
+# SettingSamples-VMware
