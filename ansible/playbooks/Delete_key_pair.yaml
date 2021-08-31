@@ -1,0 +1,3 @@
+- name: Bastion  Key
+  local_action: file state=absent path="/root/id_rsa"
+

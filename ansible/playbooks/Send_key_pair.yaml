@@ -1,0 +1,2 @@
+- name: Bastion  Key
+  local_action: copy src="{{ CPF_KEY_PAIR }}" dest="/root/id_rsa" mode=400
