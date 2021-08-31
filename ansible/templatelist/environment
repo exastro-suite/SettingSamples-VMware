@@ -1,0 +1,7 @@
+{% if VAR_host != None %}
+http_proxy="{{ VAR_protcol }}://{{ VAR_host }}:{{ VAR_port }}"
+HTTP_PROXY="{{ VAR_protcol }}://{{ VAR_host }}:{{ VAR_port }}"
+https_proxy="{{ VAR_protcol }}://{{ VAR_host }}:{{ VAR_port }}"
+HTTPS_PROXY="{{ VAR_protcol }}://{{ VAR_host }}:{{ VAR_port }}"
+no_proxy="localhost,127.0.0.1,192.168.10.1,192.168.10.2,192.168.10.100"
+{% endif %}

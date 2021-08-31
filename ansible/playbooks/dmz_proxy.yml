@@ -1,0 +1,14 @@
+- name: /etc/profileコピー
+  template:
+    src: "{{ TPF_dmz_proxy }}"
+    dest: /etc/profile.d/proxy.sh
+    owner: root
+    group: root
+    mode: 0755
+
+- name: proxy設定反映
+  shell: source /etc/profile
+
+
+
+
