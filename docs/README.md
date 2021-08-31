@@ -1,1 +1,0 @@
-# SettingSamples-VMware docs
