@@ -1,8 +1,0 @@
-- name: /etc/environment
-  template:
-    src: "{{ TPF_environment_vm }}"
-    dest: /etc/environment
-    owner: root
-    group: root
-    mode: 0644
-    
