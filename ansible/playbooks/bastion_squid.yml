@@ -1,0 +1,18 @@
+- name: install the latest version of squid
+  yum: name=squid state=latest
+  
+- name: Enable service squid, and not touch the state
+  service:
+    name: squid
+    enabled: yes
+    
+- name: /etc/squidコピー
+  template:
+    src: "{{ TPF_bas_squid }}"
+    dest: /etc/squid/squid.conf
+    owner: root
+    group: squid
+    mode: 0640
+   
+- name: proxy設定反映 
+  shell: systemctl restart squid 

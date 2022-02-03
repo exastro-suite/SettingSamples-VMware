@@ -1,0 +1,3 @@
+- include_tasks: "{{ TPF_target_host_counter }}"
+  vars:
+    movement_name: "設定_DBサーバ設定"
