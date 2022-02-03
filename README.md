@@ -2,7 +2,7 @@
 
 ## 概要
 
-本サービスでは、Exastro IT Automation のSetting samples テンプレート集 VMwareモデル v1.1.0のパッケージファイル(.kym)を公開しています。
+本サービスでは、Exastro IT Automation のSetting samples テンプレート集 VMwareモデル v1..0のパッケージファイル(.kym)を公開しています。
 
 本サービスの詳細はExastro IT Automationコミュニティサイトの[Setting samples](https://exastro-suite.github.io/it-automation-docs/setting-samples_ja.html)を参照ください。
 
