@@ -1,0 +1,7 @@
+{% if VAR_bastion != None %}
+http_proxy="{{ VAR_protcol }}://{{ VAR_bastion }}:{{ VAR_port }}"
+HTTP_PROXY="{{ VAR_protcol }}://{{ VAR_bastion }}:{{ VAR_port }}"
+https_proxy="{{ VAR_protcol }}://{{ VAR_bastion }}:{{ VAR_port }}"
+HTTPS_PROXY="{{ VAR_protcol }}://{{ VAR_bastion }}:{{ VAR_port }}"
+no_proxy="localhost,127.0.0.1"
+{% endif %}
