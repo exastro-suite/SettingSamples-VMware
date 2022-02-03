@@ -1,0 +1,11 @@
+- name: 秘密鍵配置用ディレクトリの作成
+  file:
+    state: directory
+    path: "/root/{{ VAR_tenant_name }}"
+
+- name: 踏み台サーバ及び作業対象サーバへのSSHアクセスに利用する秘密鍵ファイルをITAサーバに配置する
+  copy:
+    src: "{{ VAR_private_key }}"
+    dest: "/root/{{ VAR_tenant_name }}/{{ VAR_secret_key_name }}"
+    mode: 0400
+  delegate_to: localhost

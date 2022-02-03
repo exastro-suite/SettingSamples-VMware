@@ -1,0 +1,15 @@
+- name: latest Apache version installed
+  yum:
+    name: httpd
+    state: latest
+
+- name: Apache enabled and running
+  systemd:
+    name: httpd.service
+    state: started
+    enabled: yes
+
+- name: copy index.html
+  template:
+    src: "{{ TPF_index }}"
+    dest: /var/www/html/index.html
