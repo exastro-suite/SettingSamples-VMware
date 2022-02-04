@@ -1,0 +1,55 @@
+- name: authorization元となる文字列を生成
+  command: echo "{{ VAR_exastro_user }}:{{ VAR_exastro_pswd }}"
+  register: user_n_account
+  no_log: true
+
+- name: ITA 「Movement一覧」メニューから次に実行するMovementのレコードを取得する
+  uri:
+    url: "http://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=2100020103"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:80"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "FILTER_DATAONLY"
+    body_format: json
+    body:
+      "3":
+        "LIST": ["{{ movement_name }}"]
+  register: following_movement_record
+
+- name: 次に実行するMovementのIDと名前を抽出する
+  set_fact:
+    movement_id: "{{ following_movement_record.json.resultdata.CONTENTS.BODY[0][2] }}"
+    movement_name: "{{ following_movement_record.json.resultdata.CONTENTS.BODY[0][3] }}"
+
+- name:  ITA 「作業対象ホスト」メニューから次に実行するMovementの対象ホスト一覧を取得する
+  uri:
+    url: "http://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=2100020108"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:80"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "FILTER_DATAONLY"
+    body_format: json
+    body:
+      "1":
+        "NORMAL": "0"
+      "3":
+        "LIST": ["{{ __operation__ | regex_replace('^[0-9]{4}/(0[1-9]|1[0-2])/(0[1-9]|[12][0-9]|3[01])\\s[0-9]{2}:[0-9]{2}_') }}"]
+      "4":
+        "LIST": ["{{ movement_id + ':' + movement_name }}"]
+  register: target_hosts
+
+- name: status分岐用に対象ホストの数をファイルへ書き込む
+  blockinfile:
+    create: yes
+    mode: 644
+    insertbefore: EOF
+    marker: ""
+    dest: "{{ __movement_status_filepath__ }}"
+    content: "{{ target_hosts.json.resultdata.CONTENTS.BODY | length }}"
+  delegate_to: 127.0.0.1

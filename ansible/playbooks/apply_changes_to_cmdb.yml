@@ -1,0 +1,195 @@
+#【概要】 
+# 本Playbookは下記の作業を記載の順序で実行する。
+# ・vSphereから取得したVM一覧に存在するホスト名が、ITAの機器一覧に存在しない場合
+# 　⇒ ExastroITAのホストグループ紐づけ管理・機器一覧へ 登録処理を行う
+# ・vSphereから取得したVM一覧に存在するホスト名が、ITAの機器一覧に存在するがIPアドレスが一致しない場合
+#   ⇒ ExastroITAの機器一覧の IPアドレスを更新する
+# ・vSphereから取得したVM一覧に存在しないホスト名が、ITAの機器一覧に存在している
+#   ⇒ ExastroITAの機器一覧のIPアドレスを更新する
+
+- name: authorization元となる文字列を生成
+  command: echo "{{ VAR_exastro_user }}:{{ VAR_exastro_pswd }}"
+  register: user_n_account
+  no_log: true
+
+- name: Terraform実行前のVM一覧を読み込み (変数名:vm_list_before_tf_apply)
+  include_vars: "{{ __conductor_workflowdir__ }}/vm_list_before_tf_apply.yml"
+
+- name: 「機器一覧」メニューからデータを取得(Terraform実行前の仮想マシン一覧を元に検索)
+  uri:
+    url: "https://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=2100000303"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:443"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "FILTER_DATAONLY"
+    body_format: json
+    body:
+      "1":
+        "NORMAL": "0"
+      "4":
+        "LIST": "{{ vm_list_before_tf_apply | map(attribute='guest_name') | list }}"
+  register: device_list_from_exastro
+
+- name: 取得した「機器一覧」データからレコード情報を抽出
+  set_fact:
+    device_list_from_exastro_body: "{{ device_list_from_exastro.json.resultdata.CONTENTS.BODY if (vm_list_before_tf_apply != []) else [] }}"
+
+
+- name: 取得した「機器一覧」レコード一覧から管理システム項番(ID)を抽出
+  set_fact:
+    id: "{{ item.2 }}"
+  register: device_list_from_exastro_ids
+  with_items:
+    - "{{ device_list_from_exastro_body }}"
+
+- name: 【削除】「ホスト紐付管理」メニューからデータを取得(Terraform実行前に存在していた仮想マシンのITA管理システム項番を元に検索)
+  uri:
+    url: "https://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=2100170003"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:443"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "FILTER_DATAONLY"
+    body_format: json
+    body:
+      "1":
+        "NORMAL": "0"
+      "5":
+        "LIST": "{{ device_list_from_exastro_ids.results | map(attribute='ansible_facts.id') | list }}"
+  register: host_link_list_from_exastro
+
+- name: 取得した「ホスト紐付」データからレコード情報を抽出
+  set_fact:
+    host_link_list_from_exastro_body: "{{ host_link_list_from_exastro.json.resultdata.CONTENTS.BODY if (vm_list_before_tf_apply != []) else [] }}"
+
+- name: 【削除】「ホスト紐付一覧」に存在しており、Terraform実行後に存在しないVMを「ホスト紐付一覧」から「廃止」する
+  uri:
+    url: "https://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=2100170003"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:443"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "EDIT"
+    body_format: json
+    body:
+      "0":
+        "0": "廃止"
+        "2": "{{ item.2 }}"   # 管理システム項番
+        "9": "{{ item.9 }}"   # 更新用の最終更新日時
+  when:
+    - item.0 == None                         # 既に廃止されていない場合
+    - item.5 not in vm_list_after_tf_apply | map(attribute='guest_name') | list
+    - vm_list_before_tf_apply != []
+  with_items:
+    - "{{ host_link_list_from_exastro_body }}"
+
+
+- name: 【削除】「機器一覧」に存在しており、Terraform実行後に存在しないVMを「機器一覧」から「廃止」する
+  uri:
+    url: "https://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=2100000303"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:443"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "EDIT"
+    body_format: json
+    body:
+      "0":
+        "0": "廃止"
+        "2": "{{ item.2 }}"   # 管理システム項番
+        "26": "{{ item.26 }}" # 更新用の最終更新日時
+  when:
+    - item.0 == None                         # 既に廃止されていない場合
+    - item.4 not in vm_list_after_tf_apply | map(attribute='guest_name') | list
+  with_items:
+    - "{{ device_list_from_exastro_body }}"
+
+- name: 【登録】 Terraformメニューから実行オペレーションでのVM共通の設定情報を取得
+  uri:
+    url: "http://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=0000250024"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:80"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "FILTER_DATAONLY"
+    body_format: json
+    body:
+      "8":
+        "NORMAL": "{{ __operation__ }}"
+  register: bastion_setting_from_ITA
+
+- set_fact:
+    bastion_ip: "{{ bastion_setting_from_ITA.json.resultdata.CONTENTS.BODY[0][11] }}"
+
+- set_fact:
+    connect_option: '-o ProxyCommand="ssh -i /root/{{ VAR_tenant_name }}/{{ VAR_secret_key_name }} -o StrictHostKeyChecking=no -W %h:%p  root@{{ bastion_ip }}" -o "StrictHostKeyChecking=no" -i /root/{{ VAR_tenant_name }}/{{ VAR_secret_key_name }} -o "StrictHostKeyChecking=no"'
+
+- name: 「機器一覧」からホスト名を抽出してリスト化
+  set_fact:
+    host_name: "{{ item.4 }}"
+  register: device_list_from_exastro_hostnames
+  with_items:
+    - "{{ device_list_from_exastro_body }}"
+
+- name: 【登録】Terraform実行後に存在し、「機器一覧」に存在しないVMを機器一覧へ「登録」する
+  uri:
+    url: "https://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=2100000303"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:443"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "EDIT"
+    body_format: json
+    body:
+      "0":
+        "0": "登録"                  # 実行処理種別
+        "3": "SV"                    # HW機器種別
+        "4": "{{ item.guest_name }}" # ホスト名
+        "5": "{{ item.ip_address }}" # 機器種別
+        "8": "root"
+        "13": "鍵認証(鍵交換済み)"
+        "19": "{{ connect_option }}"
+        "22": "machine"              # Tower利用情報/接続タイプ
+  when: item.guest_name not in device_list_from_exastro_hostnames.results | map(attribute='ansible_facts.host_name') | list
+  with_items: 
+    "{{ vm_list_after_tf_apply }}"
+
+- name: 「ホスト紐付一覧」からホスト名を抽出してリスト化
+  set_fact:
+    host_name: "{{ item.5 }}"
+  register: host_link_list_from_exastro_hostnames
+  with_items:
+    - "{{ host_link_list_from_exastro_body }}"
+
+- name: 【登録】Terraform実行 前 => 後で増えたVMをホストグループに追加する
+  uri:
+    url: "https://{{ __loginhostname__ }}/default/menu/07_rest_api_ver1.php?no=2100170003"
+    validate_certs: no
+    method: POST
+    headers:
+      Host: "{{ __loginhostname__ }}:443"
+      Authorization: "{{ user_n_account.stdout | string | b64encode }}"
+      Content-Type: "application/json"
+      X-Command: "EDIT"
+    body_format: json
+    body:
+      "0":
+        "0": "登録"
+        "3": "{{ item.guest_name | regex_replace('-(.*)$', '') }}" # ホスト名
+        "5": "{{ item.guest_name }}"                               # ホストグループ名(-(ハイフン)前の文字列から判断)
+  when: item.guest_name not in host_link_list_from_exastro_hostnames.results | map(attribute='ansible_facts.host_name') | list
+  with_items: 
+    "{{ vm_list_after_tf_apply }}"

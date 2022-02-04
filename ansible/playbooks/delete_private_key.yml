@@ -1,0 +1,6 @@
+- name: 踏み台サーバ及び作業対象サーバへSSHアクセスするための秘密鍵ファイルを削除する
+  file:
+    dest: "/root/{{ VAR_tenant_name }}/{{ VAR_secret_key_name }}"
+    state: absent
+  delegate_to: localhost
+  
