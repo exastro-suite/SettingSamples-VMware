@@ -13,4 +13,4 @@
 
 [リリースページ](https://github.com/exastro-suite/SettingSamples-VMware/releases/tag/v1.1.0)より導入するExastro IT Automationシステムのバージョンに合わせパッケージファイル（.kym）をダウンロードし、導入ITAシステムへのインポート作業と初期設定を行います。
 
-本モデルの導入手順の詳細については、[導入手順書](https://github.com/exastro-suite/SettingSamples-VMware/blob/v1.0.0/docs/setting-samples-vmware-install_ja.pdf) を参照してください。
+本モデルの導入手順の詳細については、[導入手順書](https://github.com/exastro-suite/SettingSamples-VMware/blob/v1.1.0/docs/setting-samples-vmware-install_ja.pdf) を参照してください。
