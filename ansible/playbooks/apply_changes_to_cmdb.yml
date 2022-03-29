@@ -11,6 +11,7 @@
   command: echo "{{ VAR_exastro_user }}:{{ VAR_exastro_pswd }}"
   register: user_n_account
   no_log: true
+  delegate_to: localhost
 
 - name: Terraform実行前のVM一覧を読み込み (変数名:vm_list_before_tf_apply)
   include_vars: "{{ __conductor_workflowdir__ }}/vm_list_before_tf_apply.yml"
@@ -32,6 +33,9 @@
       "4":
         "LIST": "{{ vm_list_before_tf_apply | map(attribute='guest_name') | list }}"
   register: device_list_from_exastro
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost
 
 - name: 取得した「機器一覧」データからレコード情報を抽出
   set_fact:
@@ -62,6 +66,9 @@
       "5":
         "LIST": "{{ device_list_from_exastro_ids.results | map(attribute='ansible_facts.id') | list }}"
   register: host_link_list_from_exastro
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost
 
 - name: 取得した「ホスト紐付」データからレコード情報を抽出
   set_fact:
@@ -89,6 +96,9 @@
     - vm_list_before_tf_apply != []
   with_items:
     - "{{ host_link_list_from_exastro_body }}"
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost
 
 
 - name: 【削除】「機器一覧」に存在しており、Terraform実行後に存在しないVMを「機器一覧」から「廃止」する
@@ -112,6 +122,9 @@
     - item.4 not in vm_list_after_tf_apply | map(attribute='guest_name') | list
   with_items:
     - "{{ device_list_from_exastro_body }}"
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost
 
 - name: 【登録】 Terraformメニューから実行オペレーションでのVM共通の設定情報を取得
   uri:
@@ -128,6 +141,9 @@
       "8":
         "NORMAL": "{{ __operation__ }}"
   register: bastion_setting_from_ITA
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost
 
 - set_fact:
     bastion_ip: "{{ bastion_setting_from_ITA.json.resultdata.CONTENTS.BODY[0][11] }}"
@@ -166,6 +182,9 @@
   when: item.guest_name not in device_list_from_exastro_hostnames.results | map(attribute='ansible_facts.host_name') | list
   with_items: 
     "{{ vm_list_after_tf_apply }}"
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost
 
 - name: 「ホスト紐付一覧」からホスト名を抽出してリスト化
   set_fact:
@@ -193,3 +212,6 @@
   when: item.guest_name not in host_link_list_from_exastro_hostnames.results | map(attribute='ansible_facts.host_name') | list
   with_items: 
     "{{ vm_list_after_tf_apply }}"
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost

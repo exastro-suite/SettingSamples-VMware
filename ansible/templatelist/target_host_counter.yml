@@ -1,6 +1,7 @@
 - name: authorization元となる文字列を生成
   command: echo "{{ VAR_exastro_user }}:{{ VAR_exastro_pswd }}"
   register: user_n_account
+  delegate_to: localhost
   no_log: true
 
 - name: ITA 「Movement一覧」メニューから次に実行するMovementのレコードを取得する
@@ -18,6 +19,9 @@
       "3":
         "LIST": ["{{ movement_name }}"]
   register: following_movement_record
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost
 
 - name: 次に実行するMovementのIDと名前を抽出する
   set_fact:
@@ -43,6 +47,9 @@
       "4":
         "LIST": ["{{ movement_id + ':' + movement_name }}"]
   register: target_hosts
+  environment:
+    no_proxy: "{{ __loginhostname__ }}"
+  delegate_to: localhost
 
 - name: status分岐用に対象ホストの数をファイルへ書き込む
   blockinfile:
@@ -52,4 +59,4 @@
     marker: ""
     dest: "{{ __movement_status_filepath__ }}"
     content: "{{ target_hosts.json.resultdata.CONTENTS.BODY | length }}"
-  delegate_to: 127.0.0.1
+  delegate_to: localhost
