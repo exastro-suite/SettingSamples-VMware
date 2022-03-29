@@ -2,6 +2,7 @@
   file:
     state: directory
     path: "/root/{{ VAR_tenant_name }}"
+  delegate_to: localhost
 
 - name: 踏み台サーバ及び作業対象サーバへのSSHアクセスに利用する秘密鍵ファイルをITAサーバに配置する
   copy:

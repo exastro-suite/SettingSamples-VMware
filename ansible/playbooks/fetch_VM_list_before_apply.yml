@@ -25,4 +25,4 @@
     dest: "{{ __conductor_workflowdir__ }}/vm_list_before_tf_apply.yml"
     content: |
       vm_list_before_tf_apply: {{ (fetch_vm_list_result.virtual_machines is defined) | ternary(fetch_vm_list_result.virtual_machines, '[]', '[]') }}
-  delegate_to: 127.0.0.1
+  delegate_to: localhost
